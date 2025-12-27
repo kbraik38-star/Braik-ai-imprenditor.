@@ -1,0 +1,8 @@
+{
+  "name": "Braik ai imprenditor",
+  "description": "A private, secure, and intelligent business memory assistant with real-time voice interaction and document management.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
