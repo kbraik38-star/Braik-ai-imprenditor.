@@ -30,14 +30,16 @@ export const storageService = {
     localStorage.setItem(USERS_DB, JSON.stringify(db));
   },
 
-  // --- TRIAL LOGIC ---
-  checkTrialStatus: (): { isValid: boolean; daysLeft: number } => {
+  // --- TRIAL LOGIC (NON-BLOCKING) ---
+  checkTrialStatus: (): { isValid: boolean; daysLeft: number; isExpired: boolean } => {
     const email = storageService.getActiveUserEmail();
-    if (!email) return { isValid: false, daysLeft: 0 };
+    if (!email) return { isValid: false, daysLeft: 0, isExpired: false };
     
     const db = storageService.getUsersRegistry();
     const user = db[email];
-    if (!user || !user.profile.isTrial) return { isValid: true, daysLeft: 999 };
+    
+    // Gli utenti registrati "Full" non hanno trial
+    if (!user || !user.profile.isTrial) return { isValid: true, daysLeft: 999, isExpired: false };
 
     const start = user.profile.trialStartDate || user.profile.registrationDate;
     const now = Date.now();
@@ -45,10 +47,11 @@ export const storageService = {
     const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
     
     const daysPassed = Math.floor(diff / (24 * 60 * 60 * 1000));
-    const isValid = diff < sevenDaysMs;
+    const isExpired = diff >= sevenDaysMs;
     
     return { 
-      isValid, 
+      isValid: !isExpired, 
+      isExpired,
       daysLeft: Math.max(0, 7 - daysPassed) 
     };
   },
@@ -126,7 +129,6 @@ export const storageService = {
     localStorage.setItem(storageService.getUserKey('reminders'), JSON.stringify(reminders));
   },
 
-  // Added methods for social automation settings to resolve Property 'getSocialSettings' and 'saveSocialSettings' errors.
   getSocialSettings: (): SocialPlatformSettings[] => {
     const data = localStorage.getItem(storageService.getUserKey('social_settings'));
     return data ? JSON.parse(data) : [
@@ -171,9 +173,9 @@ export const storageService = {
 
   getProfile: (): UserProfile => {
     const email = storageService.getActiveUserEmail();
-    if (!email) return { name: 'Utente', companyName: 'Mia Azienda', email: 'none', registrationDate: Date.now(), isTrial: false };
+    if (!email) return { name: 'Ospite', companyName: 'Demo Azienda', email: 'guest@braik.ai', registrationDate: Date.now(), isTrial: true };
     const db = storageService.getUsersRegistry();
-    return db[email]?.profile || { name: 'Utente', companyName: 'Mia Azienda', email, registrationDate: Date.now(), isTrial: false };
+    return db[email]?.profile || { name: 'Ospite', companyName: 'Demo Azienda', email, registrationDate: Date.now(), isTrial: true };
   },
 
   saveProfile: (profile: UserProfile) => {

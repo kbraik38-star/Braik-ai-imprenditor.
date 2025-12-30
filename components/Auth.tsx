@@ -7,7 +7,7 @@ interface AuthProps {
   onAuthenticated: () => void;
 }
 
-type AuthView = 'login' | 'register' | 'trial_expired';
+type AuthView = 'login' | 'register';
 
 const TechLogo = () => (
   <div className="relative w-20 h-20 mx-auto mb-4">
@@ -69,85 +69,71 @@ const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
     if (user.auth.hashedPassword !== hashPassword(password)) return setError('Password errata.');
 
     storageService.setActiveUser(email);
+    onAuthenticated();
+  };
+
+  const handleQuickPreview = () => {
+    // Crea o recupera un profilo demo
+    const guestEmail = 'demo@braik.ai';
+    const db = storageService.getUsersRegistry();
     
-    const trial = storageService.checkTrialStatus();
-    if (!trial.isValid) {
-      setView('trial_expired');
-      return;
+    if (!db[guestEmail]) {
+      const profile: UserProfile = {
+        email: guestEmail,
+        name: 'Visitatore Demo',
+        companyName: 'Braik Preview',
+        registrationDate: Date.now(),
+        isTrial: true,
+        trialStartDate: Date.now()
+      };
+      const auth: AuthState = { isConfigured: true, email: guestEmail };
+      storageService.saveUserToRegistry(guestEmail, profile, auth);
     }
 
+    storageService.setActiveUser(guestEmail);
     onAuthenticated();
   };
-
-  const handleTrialEntry = () => {
-    const trialEmail = `trial_${Date.now()}@braik.temp`;
-    const profile: UserProfile = {
-      email: trialEmail,
-      name: 'Utente Prova',
-      companyName: 'Azienda Demo',
-      registrationDate: Date.now(),
-      isTrial: true,
-      trialStartDate: Date.now()
-    };
-    const auth: AuthState = { isConfigured: true, email: trialEmail };
-
-    storageService.saveUserToRegistry(trialEmail, profile, auth);
-    storageService.setActiveUser(trialEmail);
-    onAuthenticated();
-  };
-
-  if (view === 'trial_expired') {
-    return (
-      <div className="fixed inset-0 bg-[#020617] flex items-center justify-center p-6 z-[200]">
-        <div className="w-full max-w-md bg-slate-900 border border-red-500/20 rounded-[2rem] p-10 text-center space-y-6">
-          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
-             <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          </div>
-          <h2 className="text-2xl font-black text-white uppercase italic">Prova Scaduta</h2>
-          <p className="text-slate-400 text-sm">I tuoi 7 giorni di prova sono terminati. Passa alla versione Full per continuare a gestire la tua azienda con Braik AI.</p>
-          <button onClick={() => setView('login')} className="w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest text-xs">Torna al Login</button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 bg-[#020617] flex items-center justify-center p-6 z-[200]">
-      <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-3xl border border-white/10 rounded-[2rem] p-8 lg:p-10 shadow-2xl">
+      <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 lg:p-10 shadow-2xl animate-in fade-in zoom-in duration-500">
         <div className="text-center mb-6">
           <TechLogo />
           <h1 className="text-2xl font-black text-white mb-1 tracking-tighter uppercase italic">Braik <span className="text-cyan-400">AI</span></h1>
           <p className="text-slate-500 text-[9px] font-bold uppercase tracking-[0.3em]">Neural Entrepreneurship</p>
         </div>
 
+        <button 
+          onClick={handleQuickPreview} 
+          className="w-full bg-cyan-500 text-black font-black py-4 rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.3)] uppercase tracking-widest text-[10px] mb-8 hover:bg-cyan-400 transition-all flex items-center justify-center gap-2 group"
+        >
+          <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          Sblocca Anteprima Immediata
+        </button>
+
+        <div className="relative py-4 mb-4">
+          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/5"></div></div>
+          <div className="relative flex justify-center text-[8px] uppercase font-bold tracking-widest"><span className="bg-[#0f172a] px-4 text-slate-600">Oppure accedi al tuo Vault</span></div>
+        </div>
+
         {view === 'login' ? (
           <form onSubmit={handleLogin} className="space-y-4">
-            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-cyan-500" />
-            <input type="password" placeholder="Password Master" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-cyan-500" />
-            <button type="submit" className="w-full bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-black py-4 rounded-xl shadow-lg uppercase tracking-widest text-xs">Accedi al Vault</button>
-            <p className="text-center text-[10px] text-slate-500">Non hai un account? <button type="button" onClick={() => setView('register')} className="text-cyan-400 font-bold">Registrati ora</button></p>
+            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-cyan-500 text-sm" />
+            <input type="password" placeholder="Password Master" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-cyan-500 text-sm" />
+            <button type="submit" className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3.5 rounded-xl uppercase tracking-widest text-[10px] transition-all">Accedi</button>
+            <p className="text-center text-[9px] text-slate-500 uppercase tracking-widest">Nuovo? <button type="button" onClick={() => setView('register')} className="text-cyan-400 font-bold">Crea Account</button></p>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="space-y-4">
-            <input type="text" placeholder="Nome Completo" value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none" />
-            <input type="text" placeholder="Nome Azienda (opzionale)" value={company} onChange={e => setCompany(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none" />
-            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none" />
-            <input type="password" placeholder="Scegli Password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none" />
-            <button type="submit" className="w-full bg-white text-black font-black py-4 rounded-xl uppercase tracking-widest text-xs">Crea Account</button>
-            <p className="text-center text-[10px] text-slate-500">Hai già un account? <button type="button" onClick={() => setView('login')} className="text-cyan-400 font-bold">Accedi</button></p>
+            <input type="text" placeholder="Nome" value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm" />
+            <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm" />
+            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm" />
+            <button type="submit" className="w-full bg-white text-black font-bold py-3.5 rounded-xl uppercase tracking-widest text-[10px]">Registrati</button>
+            <p className="text-center text-[9px] text-slate-500 uppercase tracking-widest">Hai un account? <button type="button" onClick={() => setView('login')} className="text-cyan-400 font-bold">Accedi</button></p>
           </form>
         )}
 
-        <div className="relative py-6">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
-          <div className="relative flex justify-center text-[9px] uppercase font-bold tracking-widest"><span className="bg-slate-900 px-4 text-slate-600">Nuovo su Braik?</span></div>
-        </div>
-
-        <button onClick={handleTrialEntry} className="w-full border border-cyan-500/30 bg-cyan-500/5 text-cyan-400 hover:bg-cyan-500/10 font-bold py-4 rounded-xl transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2">
-          Prova Gratuita (7 Giorni)
-        </button>
-
-        {error && <p className="text-red-400 text-[10px] text-center font-bold uppercase mt-4">{error}</p>}
+        {error && <p className="text-red-400 text-[9px] text-center font-bold uppercase mt-4 tracking-widest">{error}</p>}
       </div>
     </div>
   );

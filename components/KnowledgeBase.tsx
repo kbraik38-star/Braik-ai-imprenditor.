@@ -80,7 +80,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ entries, onAdd, onDelete 
 
   const icons: Record<EntryType, React.ReactNode> = {
     note: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-    appointment: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z" /></svg>,
+    appointment: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
     contact: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
     document: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>,
     general: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
@@ -97,10 +97,10 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ entries, onAdd, onDelete 
         <div className="flex items-center gap-2">
           <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e.target.files)} className="hidden" multiple accept=".txt,.md,.json,.csv,.log" />
           <button onClick={() => fileInputRef.current?.click()} className="bg-white/5 border border-white/10 text-slate-400 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2">
-            File
+            Carica File
           </button>
           <button onClick={() => setIsAdding(true)} className="bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 transition-all flex items-center gap-2 shadow-lg shadow-indigo-900/20">
-            Nuovo
+            Nuovo Dato
           </button>
         </div>
       </div>
@@ -116,9 +116,9 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ entries, onAdd, onDelete 
       <div className={`flex-1 overflow-y-auto p-8 custom-scrollbar transition-colors ${isDragging ? 'bg-indigo-500/5' : ''}`} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
         {filteredEntries.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center py-12 opacity-40">
-            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10"><svg className="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2-2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div>
+            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10"><svg className="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div>
             <h3 className="text-white font-black uppercase italic tracking-tighter">Memoria Vuota</h3>
-            <p className="text-[10px] text-slate-500 mt-2 uppercase tracking-[0.3em]">Scansiona o trascina file</p>
+            <p className="text-[10px] text-slate-500 mt-2 uppercase tracking-[0.3em]">Trascina i tuoi file per caricarli</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -137,7 +137,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({ entries, onAdd, onDelete 
                 <p className="text-xs text-slate-500 line-clamp-3 mb-4 h-12 leading-relaxed font-medium">{entry.content}</p>
                 <div className="flex items-center justify-between text-[9px] text-slate-600 mt-4 border-t border-white/5 pt-4 font-black uppercase tracking-widest">
                   <span>{entry.date || new Date(entry.timestamp).toLocaleDateString()}</span>
-                  <span className="text-cyan-400 opacity-0 group-hover:opacity-100 transition-all">DETTAGLI</span>
+                  <span className="text-cyan-400 opacity-0 group-hover:opacity-100 transition-all">ANALIZZA PROFILO</span>
                 </div>
               </div>
             ))}

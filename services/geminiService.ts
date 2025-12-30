@@ -11,57 +11,6 @@ export interface GeminiResponse {
   suggestedSave?: boolean;
 }
 
-// Fixed missing export for DocumentScanner
-/**
- * Analizza un documento tramite immagine base64 e ne estrae i dati strutturati.
- */
-export const analyzeDocument = async (base64Data: string): Promise<{ type: EntryType, title: string, content: string }> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  // Rimuoviamo il prefisso del data URL se presente
-  const base64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-  
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: {
-      parts: [
-        {
-          inlineData: {
-            mimeType: 'image/jpeg',
-            data: base64,
-          },
-        },
-        {
-          text: 'Analizza questo documento. Categorizzalo in uno di questi tipi: note, appointment, contact, document, general. Estrai un titolo breve e il contenuto testuale completo. Restituisci il risultato in formato JSON.',
-        },
-      ],
-    },
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          type: { type: Type.STRING, enum: ['note', 'appointment', 'contact', 'document', 'general'] },
-          title: { type: Type.STRING },
-          content: { type: Type.STRING },
-        },
-        required: ['type', 'title', 'content'],
-      },
-    },
-  });
-
-  try {
-    const text = response.text || '{}';
-    return JSON.parse(text);
-  } catch (e) {
-    console.error("Braik Document Analysis Error:", e);
-    return { 
-      type: 'general', 
-      title: 'Scansione Fallita', 
-      content: 'L\'intelligenza artificiale non è riuscita a decodificare il documento. Assicurati che il testo sia leggibile e ben illuminato.' 
-    };
-  }
-};
-
 export const queryGemini = async (
   query: string, 
   history: ChatMessage[], 
@@ -123,7 +72,6 @@ export const queryGemini = async (
       return { text: text || "Asset visivo generato.", imageUrl };
     } else {
       const response = await ai.models.generateContent({
-        // use gemini-3-flash-preview for search grounded text tasks
         model: mode === 'workspace' ? "gemini-3-pro-preview" : "gemini-3-flash-preview",
         contents: history.map(m => ({ 
           role: m.role === 'assistant' ? 'model' as const : 'user' as const, 
@@ -162,6 +110,46 @@ export const queryGemini = async (
     console.error("Braik Neural Error:", error);
     return { text: "Errore di sincronizzazione neurale." };
   }
+};
+
+/**
+ * Analyzes a document image using Gemini and extracts key business data.
+ */
+export const analyzeDocument = async (base64Image: string): Promise<{ type: EntryType; title: string; content: string }> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+  
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: {
+      parts: [
+        {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: base64Data,
+          },
+        },
+        {
+          text: 'Analizza questo documento. Restituisci un JSON con: type (uno tra: note, appointment, contact, document, general), title, content (estrai e riassumi il testo).',
+        },
+      ],
+    },
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          type: { type: Type.STRING, description: 'Type of entry' },
+          title: { type: Type.STRING, description: 'Title of the document' },
+          content: { type: Type.STRING, description: 'Summary or extracted text' },
+        },
+        required: ['type', 'title', 'content'],
+      },
+    },
+  });
+
+  const resText = response.text || '{}';
+  return JSON.parse(resText);
 };
 
 export const runGuardianCheck = async (entries: BusinessEntry[], events: CalendarEvent[]) => {
