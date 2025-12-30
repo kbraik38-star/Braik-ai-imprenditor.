@@ -1,17 +1,78 @@
 
-import { BusinessEntry, UserProfile, ChatMessage, AuthState, WhatsAppSettings, SocialPlatformSettings } from '../types';
+import { BusinessEntry, UserProfile, ChatMessage, AuthState, CalendarEvent, Reminder, SocialPlatformSettings, ChatSession, BehavioralInsights } from '../types';
 
-const STORAGE_KEY = 'corporate_mind_entries';
-const PROFILE_KEY = 'corporate_mind_profile';
-const CHAT_KEY = 'corporate_mind_chat';
-const AUTH_KEY = 'corporate_mind_auth';
-const WHATSAPP_KEY = 'corporate_mind_whatsapp';
-const SOCIAL_KEY = 'corporate_mind_social';
+// Chiavi globali
+const CURRENT_USER_EMAIL = 'braik_active_user';
+const USERS_DB = 'braik_users_registry';
 
 export const storageService = {
+  // --- AUTH & USER REGISTRY ---
+  getActiveUserEmail: (): string | null => {
+    return localStorage.getItem(CURRENT_USER_EMAIL);
+  },
+
+  setActiveUser: (email: string) => {
+    localStorage.setItem(CURRENT_USER_EMAIL, email);
+  },
+
+  logout: () => {
+    localStorage.removeItem(CURRENT_USER_EMAIL);
+  },
+
+  getUsersRegistry: (): Record<string, { profile: UserProfile, auth: AuthState }> => {
+    const data = localStorage.getItem(USERS_DB);
+    return data ? JSON.parse(data) : {};
+  },
+
+  saveUserToRegistry: (email: string, profile: UserProfile, auth: AuthState) => {
+    const db = storageService.getUsersRegistry();
+    db[email] = { profile, auth };
+    localStorage.setItem(USERS_DB, JSON.stringify(db));
+  },
+
+  // --- TRIAL LOGIC ---
+  checkTrialStatus: (): { isValid: boolean; daysLeft: number } => {
+    const email = storageService.getActiveUserEmail();
+    if (!email) return { isValid: false, daysLeft: 0 };
+    
+    const db = storageService.getUsersRegistry();
+    const user = db[email];
+    if (!user || !user.profile.isTrial) return { isValid: true, daysLeft: 999 };
+
+    const start = user.profile.trialStartDate || user.profile.registrationDate;
+    const now = Date.now();
+    const diff = now - start;
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+    
+    const daysPassed = Math.floor(diff / (24 * 60 * 60 * 1000));
+    const isValid = diff < sevenDaysMs;
+    
+    return { 
+      isValid, 
+      daysLeft: Math.max(0, 7 - daysPassed) 
+    };
+  },
+
+  // --- DATA ACCESS (Scoped by Email) ---
+  getUserKey: (base: string) => {
+    const email = storageService.getActiveUserEmail();
+    return email ? `braik_${btoa(email)}_${base}` : `braik_guest_${base}`;
+  },
+
   getEntries: (): BusinessEntry[] => {
-    const data = localStorage.getItem(STORAGE_KEY);
+    const data = localStorage.getItem(storageService.getUserKey('entries'));
     return data ? JSON.parse(data) : [];
+  },
+
+  getHistoricalEntries: (): BusinessEntry[] => {
+    const entries = storageService.getEntries();
+    const today = new Date();
+    return entries.filter(e => {
+      const d = new Date(e.timestamp);
+      return d.getDate() === today.getDate() && 
+             d.getMonth() === today.getMonth() && 
+             d.getFullYear() < today.getFullYear();
+    });
   },
 
   saveEntry: (entry: BusinessEntry) => {
@@ -19,72 +80,117 @@ export const storageService = {
     const existingIndex = entries.findIndex(e => e.id === entry.id);
     if (existingIndex >= 0) entries[existingIndex] = entry;
     else entries.push(entry);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    localStorage.setItem(storageService.getUserKey('entries'), JSON.stringify(entries));
   },
 
   deleteEntry: (id: string) => {
     const entries = storageService.getEntries();
     const filtered = entries.filter(e => e.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    localStorage.setItem(storageService.getUserKey('entries'), JSON.stringify(filtered));
   },
 
-  getProfile: (): UserProfile => {
-    const data = localStorage.getItem(PROFILE_KEY);
-    return data ? JSON.parse(data) : { name: 'Proprietario', companyName: 'Mia Azienda' };
-  },
-
-  saveProfile: (profile: UserProfile) => {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-  },
-
-  getChatHistory: (): ChatMessage[] => {
-    const data = localStorage.getItem(CHAT_KEY);
-    return data ? JSON.parse(data) : [];
-  },
-
-  saveChatHistory: (messages: ChatMessage[]) => {
-    localStorage.setItem(CHAT_KEY, JSON.stringify(messages));
-  },
-
-  getAuthState: (): AuthState => {
-    const data = localStorage.getItem(AUTH_KEY);
-    return data ? JSON.parse(data) : { isConfigured: false };
-  },
-
-  saveAuthState: (state: AuthState) => {
-    localStorage.setItem(AUTH_KEY, JSON.stringify(state));
-  },
-
-  // Added method to retrieve WhatsApp integration settings from local storage
-  getWhatsAppSettings: (): WhatsAppSettings => {
-    const data = localStorage.getItem(WHATSAPP_KEY);
+  getInsights: (): BehavioralInsights => {
+    const data = localStorage.getItem(storageService.getUserKey('insights'));
     return data ? JSON.parse(data) : {
-      isConnected: false,
-      isEnabled: false,
-      lastActivity: 0,
-      autoReplyMode: 'contacts_only'
+      writingStyle: 'Analisi in corso...',
+      frequentTopics: [],
+      anticipatedNeeds: [],
+      guardianAlerts: [],
+      lastAnalysis: 0
     };
   },
 
-  // Added method to persist WhatsApp integration settings
-  saveWhatsAppSettings: (settings: WhatsAppSettings) => {
-    localStorage.setItem(WHATSAPP_KEY, JSON.stringify(settings));
+  saveInsights: (insights: BehavioralInsights) => {
+    localStorage.setItem(storageService.getUserKey('insights'), JSON.stringify(insights));
   },
 
-  // Added method to retrieve Social Automation settings for all supported platforms
+  getCalendarEvents: (): CalendarEvent[] => {
+    const data = localStorage.getItem(storageService.getUserKey('calendar'));
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveCalendarEvent: (event: CalendarEvent) => {
+    const events = storageService.getCalendarEvents();
+    events.push(event);
+    localStorage.setItem(storageService.getUserKey('calendar'), JSON.stringify(events));
+  },
+
+  getReminders: (): Reminder[] => {
+    const data = localStorage.getItem(storageService.getUserKey('reminders'));
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveReminder: (reminder: Reminder) => {
+    const reminders = storageService.getReminders();
+    reminders.push(reminder);
+    localStorage.setItem(storageService.getUserKey('reminders'), JSON.stringify(reminders));
+  },
+
+  // Added methods for social automation settings to resolve Property 'getSocialSettings' and 'saveSocialSettings' errors.
   getSocialSettings: (): SocialPlatformSettings[] => {
-    const data = localStorage.getItem(SOCIAL_KEY);
-    if (data) return JSON.parse(data);
-    return [
-      { platform: 'facebook', isConnected: false, isEnabled: false, managedPages: [], repliesCount: 0, lastReplyTimestamp: 0 },
-      { platform: 'instagram', isConnected: false, isEnabled: false, managedPages: [], repliesCount: 0, lastReplyTimestamp: 0 },
-      { platform: 'tiktok', isConnected: false, isEnabled: false, managedPages: [], repliesCount: 0, lastReplyTimestamp: 0 }
+    const data = localStorage.getItem(storageService.getUserKey('social_settings'));
+    return data ? JSON.parse(data) : [
+      { platform: 'facebook', isConnected: false, isEnabled: false },
+      { platform: 'instagram', isConnected: false, isEnabled: false },
+      { platform: 'tiktok', isConnected: false, isEnabled: false }
     ];
   },
 
-  // Added method to persist Social Automation settings array
   saveSocialSettings: (settings: SocialPlatformSettings[]) => {
-    localStorage.setItem(SOCIAL_KEY, JSON.stringify(settings));
+    localStorage.setItem(storageService.getUserKey('social_settings'), JSON.stringify(settings));
+  },
+
+  toggleReminder: (id: string) => {
+    const reminders = storageService.getReminders().map(r => 
+      r.id === id ? { ...r, isCompleted: !r.isCompleted } : r
+    );
+    localStorage.setItem(storageService.getUserKey('reminders'), JSON.stringify(reminders));
+  },
+
+  getSearchHistory: (): ChatMessage[] => {
+    const data = localStorage.getItem(storageService.getUserKey('search_history'));
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveSearchHistory: (messages: ChatMessage[]) => {
+    localStorage.setItem(storageService.getUserKey('search_history'), JSON.stringify(messages));
+  },
+
+  getSessions: (): ChatSession[] => {
+    const data = localStorage.getItem(storageService.getUserKey('workspace_sessions'));
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveSession: (session: ChatSession) => {
+    const sessions = storageService.getSessions();
+    const idx = sessions.findIndex(s => s.id === session.id);
+    if (idx >= 0) sessions[idx] = session;
+    else sessions.push(session);
+    localStorage.setItem(storageService.getUserKey('workspace_sessions'), JSON.stringify(sessions));
+  },
+
+  getProfile: (): UserProfile => {
+    const email = storageService.getActiveUserEmail();
+    if (!email) return { name: 'Utente', companyName: 'Mia Azienda', email: 'none', registrationDate: Date.now(), isTrial: false };
+    const db = storageService.getUsersRegistry();
+    return db[email]?.profile || { name: 'Utente', companyName: 'Mia Azienda', email, registrationDate: Date.now(), isTrial: false };
+  },
+
+  saveProfile: (profile: UserProfile) => {
+    const email = storageService.getActiveUserEmail();
+    if (!email) return;
+    const db = storageService.getUsersRegistry();
+    if (db[email]) {
+      db[email].profile = profile;
+      localStorage.setItem(USERS_DB, JSON.stringify(db));
+    }
+  },
+
+  getAuthState: (): AuthState => {
+    const email = storageService.getActiveUserEmail();
+    if (!email) return { isConfigured: false };
+    const db = storageService.getUsersRegistry();
+    return db[email]?.auth || { isConfigured: false };
   },
 
   resetAll: () => {

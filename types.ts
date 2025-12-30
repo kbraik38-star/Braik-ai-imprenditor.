@@ -12,18 +12,72 @@ export interface BusinessEntry {
   metadata?: Record<string, string>;
 }
 
+export interface GuardianAlert {
+  id: string;
+  type: 'forgotten' | 'anomaly' | 'strategy';
+  message: string;
+  severity: 'low' | 'medium' | 'high';
+  timestamp: number;
+}
+
+export interface BehavioralInsights {
+  writingStyle: string;
+  frequentTopics: string[];
+  anticipatedNeeds: string[];
+  lastAnalysis: number;
+  guardianAlerts: GuardianAlert[];
+}
+
+export interface WeeklyStrategy {
+  goals: string[];
+  dailyPlans: {
+    day: string;
+    slots: { time: string; activity: string; priority: 'high' | 'medium' | 'low'; reason: string }[];
+  }[];
+  criticalAlerts: string[];
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  duration: number; // in minuti
+  isAIRelated: boolean;
+}
+
+export interface Reminder {
+  id: string;
+  text: string;
+  dueTimestamp: number;
+  isCompleted: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
-  sources?: string[];
+  sources?: { uri: string; title: string }[];
+  imageUrl?: string;
+  suggestedSave?: boolean;
+}
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  lastUpdate: number;
 }
 
 export interface UserProfile {
   name: string;
   companyName: string;
-  email?: string;
+  email: string;
+  registrationDate: number;
+  isTrial: boolean;
+  trialStartDate?: number;
 }
 
 export interface AuthState {
@@ -32,30 +86,8 @@ export interface AuthState {
   email?: string;
 }
 
-// Added ManagedPage interface for social automation tracking
-export interface ManagedPage {
-  id: string;
-  name: string;
-  handle: string;
-  isActive: boolean;
-  platform: 'facebook' | 'instagram' | 'tiktok';
-  connectedAt: number;
-}
-
-// Added SocialPlatformSettings interface for tracking platform-specific automation state
 export interface SocialPlatformSettings {
   platform: string;
   isConnected: boolean;
   isEnabled: boolean;
-  managedPages: ManagedPage[];
-  repliesCount: number;
-  lastReplyTimestamp: number;
-}
-
-// Added WhatsAppSettings interface for managing WhatsApp integration state
-export interface WhatsAppSettings {
-  isConnected: boolean;
-  isEnabled: boolean;
-  lastActivity: number;
-  autoReplyMode: 'contacts_only' | 'all';
 }
